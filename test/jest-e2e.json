@@ -1,0 +1,28 @@
+{
+  "moduleFileExtensions": [
+    "js",
+    "json",
+    "ts"
+  ],
+  "rootDir": "..",
+  "testEnvironment": "node",
+  "testRegex": ".e2e-spec.ts$",
+  "setupFiles": [
+    "<rootDir>/test/e2e-env.ts"
+  ],
+  "transform": {
+    "^.+\\.(t|j)s$": [
+      "ts-jest",
+      {
+        "tsconfig": "<rootDir>/test/tsconfig.e2e.json"
+      }
+    ]
+  },
+  "transformIgnorePatterns": [
+    "node_modules[\\\\/](?!(@nestjs)[\\\\/])"
+  ],
+  "moduleNameMapper": {
+    "^.*[\\\\/]load-package\\.util(\\.js)?$": "<rootDir>/test/mocks/load-package.util.mock.js",
+    "^.*[\\/]typeorm-compat(\\.js)?$": "<rootDir>/test/mocks/typeorm-compat.mock.js"
+  }
+}
