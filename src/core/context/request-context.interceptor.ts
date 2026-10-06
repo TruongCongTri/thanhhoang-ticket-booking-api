@@ -5,21 +5,20 @@
  * Kể từ thời điểm này, mọi Service, Helper, TypeORM Subscriber bên dưới
  * đều có thể lấy userId, tenantId, rules mà không cần chạm vào request object.
  *
+ * Đồng thời đặt tên span server của OpenTelemetry theo route template ("GET /api/v1/bookings/:id")
+ * để trace có thể gom nhóm theo endpoint (no-op khi tracing tắt).
+ *
  * Lưu ý: Guard chạy TRƯỚC interceptor, vì vậy các guard cần user (PermissionsGuard)
  * phải tự gọi syncUserFromRequest().
  */
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
+import { trace } from '@opentelemetry/api';
 import { Observable } from 'rxjs';
 import { RequestContextService } from './request-context.service';
 import { RequestUserContext } from './request-context.model';
 
 /**
- * Đồng bộ request.user (do Passport/JwtAuthGuard gán) vào AsyncLocalStorage.
+ * Đồng bộ request.user (do JwtAuthGuard gán) vào AsyncLocalStorage.
  * Trả về user hiệu lực (ưu tiên request.user).
  */
 export function syncUserFromRequest(
@@ -43,6 +42,17 @@ export class RequestContextSyncInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     syncUserFromRequest(context, this.contextService);
+
+    if (context.getType() === 'http') {
+      const request = context.switchToHttp().getRequest();
+      const route: string | undefined = request?.route?.path;
+      const span = trace.getActiveSpan();
+      if (span && route) {
+        span.updateName(`${request.method} ${route}`);
+        span.setAttribute('http.route', route);
+      }
+    }
+
     return next.handle();
   }
 }

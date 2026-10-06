@@ -16,8 +16,15 @@ export interface RequestUserContext {
 
 export interface RequestContextData {
   traceId: string;
+  /**
+   * Tenant do mã phía server gieo vào context nền (job payload, outbox, cron) - đáng tin cậy.
+   * Không bao giờ lấy từ header của client (xem requestedTenantId).
+   */
+  tenantId?: string;
   clientIp: string;
   userAgent?: string;
+  /** Ngôn ngữ phản hồi đã phân giải từ Accept-Language (vi | en | ja | ko) */
+  locale?: string;
   user?: RequestUserContext;
   startTime: number;
   isBackgroundJob?: boolean;

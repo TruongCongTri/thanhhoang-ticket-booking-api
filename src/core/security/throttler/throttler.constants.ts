@@ -9,6 +9,8 @@ export const THROTTLE_TIERS = {
   SEARCH: 'search',
   // 3. API nhạy cảm chống Brute-Force (Login, OTP, Payment): mặc định 5 request / 60 giây
   SENSITIVE: 'sensitive',
+  // 4. Hạ tầng nội bộ (health probe của kubelet, Prometheus scraper): bỏ qua mọi tầng
+  NONE: 'none',
 } as const;
 
 export type ThrottleTier = (typeof THROTTLE_TIERS)[keyof typeof THROTTLE_TIERS];

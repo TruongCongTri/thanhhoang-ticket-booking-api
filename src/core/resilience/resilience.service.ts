@@ -42,17 +42,22 @@ export class ResilienceService implements OnModuleDestroy {
   private readonly breakers = new Map<string, CircuitBreaker<[Operation], unknown>>();
   private readonly bulkheads = new Map<string, Bulkhead>();
   private readonly defaultBreakerOptions: Required<CircuitBreakerOptions>;
+  private readonly defaultBulkheadOptions: BulkheadOptions;
 
   constructor(
     private readonly appLogger: AppLoggerService,
     config?: AppConfigService,
   ) {
+    const resilience = config?.resilience;
     this.defaultBreakerOptions = {
-      timeout: config?.resilience.timeoutMs ?? 8000,
-      resetTimeout: config?.resilience.resetTimeoutMs ?? 30000,
-      errorThresholdPercentage: 50,
-      volumeThreshold: 5,
+      timeout: resilience?.timeoutMs ?? 8000,
+      resetTimeout: resilience?.resetTimeoutMs ?? 30000,
+      errorThresholdPercentage: resilience?.errorThresholdPercentage ?? 50,
+      volumeThreshold: resilience?.volumeThreshold ?? 5,
     };
+    this.defaultBulkheadOptions = resilience
+      ? { maxConcurrent: resilience.bulkheadMaxConcurrent, maxQueue: resilience.bulkheadMaxQueue }
+      : DEFAULT_BULKHEAD;
   }
 
   onModuleDestroy(): void {
@@ -67,7 +72,7 @@ export class ResilienceService implements OnModuleDestroy {
   getOrCreateBulkhead(name: string, options?: BulkheadOptions): Bulkhead {
     let bulkhead = this.bulkheads.get(name);
     if (!bulkhead) {
-      bulkhead = new Bulkhead(name, options ?? DEFAULT_BULKHEAD);
+      bulkhead = new Bulkhead(name, options ?? this.defaultBulkheadOptions);
       this.bulkheads.set(name, bulkhead);
     }
     return bulkhead;

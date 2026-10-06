@@ -28,7 +28,6 @@ export const loggerSerializers = {
     method: req.method,
     url: req.originalUrl || req.url,
     query: req.query,
-    params: req.params,
     remoteAddress: req.ip || req.socket?.remoteAddress,
     userAgent: req.headers?.['user-agent'],
   }),

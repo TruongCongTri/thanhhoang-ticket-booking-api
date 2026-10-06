@@ -3,6 +3,7 @@ import { CaslAbilityFactory } from './casl-ability.factory';
 import { AccessControlService } from './access-control.service';
 import { PermissionsGuard } from './permissions.guard';
 import { PermissionCacheService } from './permission-cache.service';
+import { UserPermissionResolver } from './user-permission.resolver';
 
 @Global()
 @Module({
@@ -10,12 +11,14 @@ import { PermissionCacheService } from './permission-cache.service';
     CaslAbilityFactory,
     AccessControlService,
     PermissionCacheService,
+    UserPermissionResolver,
     PermissionsGuard,
   ],
   exports: [
     CaslAbilityFactory,
     AccessControlService,
     PermissionCacheService,
+    UserPermissionResolver,
     PermissionsGuard,
   ],
 })

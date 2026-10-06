@@ -4,18 +4,17 @@
  * tránh race-condition & table lock khi nhiều Pod cùng boot.
  *
  *   npm run migration:run
+ *   npm run migration:generate -- src/core/database/migrations/AddBookingTable
+ *
+ * Lưu ý Supabase: chạy migration qua kết nối direct (IPv6) hoặc session pooler :5432;
+ * transaction pooler :6543 không giữ được trạng thái phiên mà migration cần.
  */
 import 'reflect-metadata';
-import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
-import { config as loadDotenv } from 'dotenv';
-import { validateEnv } from '../config/env.schema';
-import { AppConfigService } from '../config/app-config.service';
+import { loadAppConfig } from '../config/load-config';
 import { buildDataSourceOptions } from './database.options';
 
-loadDotenv({ path: [`.env.${process.env.NODE_ENV || 'development'}`, '.env'], quiet: true });
-
-const appConfig = new AppConfigService(new ConfigService(validateEnv(process.env)));
+const appConfig = loadAppConfig();
 
 export default new DataSource({
   ...buildDataSourceOptions(appConfig),

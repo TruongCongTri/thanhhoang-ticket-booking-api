@@ -22,11 +22,11 @@ export class TypeOrmLoggerService implements ITypeOrmLogger {
   ) {
     this.slowQueryThresholdMs = config.database.slowQueryMs;
     this.logParameters = !config.isProduction;
-    this.logAllQueries = config.isDevelopment;
+    this.logAllQueries = config.database.logQueries;
   }
 
   logQuery(query: string, parameters?: any[], _queryRunner?: QueryRunner): void {
-    // Chỉ ghi toàn bộ SQL khi phát triển cục bộ để tránh làm ngập log
+    // Chỉ ghi toàn bộ SQL khi bật DB_LOG_QUERIES (gỡ lỗi cục bộ) để tránh làm ngập log
     if (this.logAllQueries) {
       this.logger.debug(
         `${this.prefix()} SQL: ${this.truncate(query)} -- Params: ${this.formatParams(parameters)}`,

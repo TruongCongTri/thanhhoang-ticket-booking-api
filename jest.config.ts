@@ -3,34 +3,24 @@ import { pathsToModuleNameMapper } from 'ts-jest';
 import ts from 'typescript';
 
 // Path aliases từ tsconfig.json
-const { config: tsconfig } = ts.readConfigFile(
-  './tsconfig.json',
-  ts.sys.readFile,
-);
+const { config: tsconfig } = ts.readConfigFile('./tsconfig.json', ts.sys.readFile);
 const paths = tsconfig?.compilerOptions?.paths ?? {};
 
+/**
+ * NestJS 12 phát hành dạng ESM thuần ("type": "module"). Jest được chạy với
+ * `node --experimental-vm-modules` (xem script `test` trong package.json) để nạp các gói ESM
+ * trong node_modules NGUYÊN BẢN (require(esm)), không cần transform hay mock thủ công từng file dùng import.meta.
+ */
 const config: Config = {
   moduleFileExtensions: ['js', 'json', 'ts'],
   rootDir: '.',
+  roots: ['<rootDir>/src'],
   testRegex: '.*\\.spec\\.ts$',
   transform: {
-    '^.+\\.(t|j)s$': 'ts-jest',
+    '^.+\\.ts$': 'ts-jest',
   },
-  transformIgnorePatterns: ['node_modules[\\\\/](?!(@nestjs)[\\\\/])'],
-  moduleNameMapper: {
-    ...pathsToModuleNameMapper(paths, { prefix: '<rootDir>/' }),
-    // Chặn triệt để lỗi ESM của load-package.util trên cả Windows và Linux
-    '^.*[\\\\/]load-package\\.util(\\.js)?$':
-      '<rootDir>/test/mocks/load-package.util.mock.js',
-    // @nestjs/typeorm dùng import.meta (ESM) không chạy được dưới CommonJS
-    '^.*[\\\\/]typeorm-compat(\\.js)?$':
-      '<rootDir>/test/mocks/typeorm-compat.mock.js',
-  },
-  collectCoverageFrom: [
-    'src/**/*.(t|j)s',
-    'libs/**/*.(t|j)s',
-    'apps/**/*.(t|j)s',
-  ],
+  moduleNameMapper: pathsToModuleNameMapper(paths, { prefix: '<rootDir>/' }),
+  collectCoverageFrom: ['src/**/*.(t|j)s', '!src/**/*.spec.ts', '!src/main.ts', '!src/instrumentation.ts'],
   coverageDirectory: './coverage',
   testEnvironment: 'node',
 };

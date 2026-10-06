@@ -18,6 +18,14 @@ export class RequestContextService {
   private static readonly storage = new AsyncLocalStorage<RequestContextData>();
 
   /**
+   * Truy cập tĩnh context hiện hành cho mã chạy ngoài DI (decorator tham số, Domain Event,
+   * TypeORM ValueTransformer). Trong Service/Guard hãy inject RequestContextService.
+   */
+  static current(): RequestContextData | undefined {
+    return RequestContextService.storage.getStore();
+  }
+
+  /**
    * Khởi chạy một context mới bao bọc toàn bộ vòng đời của request
    */
   run<T>(context: RequestContextData, fn: () => T): T {
@@ -38,12 +46,15 @@ export class RequestContextService {
   runWithContext<T>(seed: ContextSeed, fn: () => T): T {
     const context: RequestContextData = {
       traceId: seed.traceId || randomUUID(),
+      // Tenant gieo từ payload của job/outbox là tenant hiệu lực của tác vụ nền (đã xác thực khi enqueue)
+      tenantId: seed.tenantId,
+      tenantOverride: seed.tenantOverride ?? seed.tenantId,
       clientIp: seed.clientIp || '127.0.0.1',
       userAgent: seed.userAgent,
+      locale: seed.locale,
       user: seed.user,
       startTime: seed.startTime ?? Date.now(),
       isBackgroundJob: seed.isBackgroundJob ?? true,
-      tenantOverride: seed.tenantOverride,
       requestedTenantId: seed.requestedTenantId,
       metadata: seed.metadata ?? new Map(),
     };
@@ -170,6 +181,10 @@ export class RequestContextService {
 
   getUserAgent(): string | undefined {
     return this.getStore()?.userAgent;
+  }
+
+  getLocale(): string | undefined {
+    return this.getStore()?.locale;
   }
 
   getStartTime(): number {

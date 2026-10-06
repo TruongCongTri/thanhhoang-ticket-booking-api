@@ -58,8 +58,8 @@ type AuthenticatedRequest = IncomingMessage & {
 
           serializers: loggerSerializers,
 
-          // Chỉ pretty-print khi phát triển cục bộ; production/test xuất NDJSON 1 dòng cho log shipper
-          transport: config.isDevelopment
+          // Pretty-print chỉ khi phát triển cục bộ (LOG_PRETTY); production/test xuất NDJSON 1 dòng cho log shipper
+          transport: config.logPretty
             ? {
                 target: 'pino-pretty',
                 options: {

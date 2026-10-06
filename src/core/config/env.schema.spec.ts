@@ -1,6 +1,6 @@
 import { validateEnv, describeEnvValue } from './env.schema';
 import { AppConfigService } from './app-config.service';
-import { ConfigService } from '@nestjs/config';
+import { configServiceFrom } from './load-config';
 
 describe('AppConfigModule - Env Validation & ConfigService (Unit Test)', () => {
   const KEY_V1 = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
@@ -30,7 +30,7 @@ describe('AppConfigModule - Env Validation & ConfigService (Unit Test)', () => {
 
   const buildConfig = (env: Record<string, string>) => {
     const parsed = validateEnv(env);
-    return new AppConfigService(new ConfigService(parsed) as any);
+    return new AppConfigService(configServiceFrom(parsed));
   };
 
   it('should successfully parse and coerce valid environment variables', () => {
@@ -39,13 +39,16 @@ describe('AppConfigModule - Env Validation & ConfigService (Unit Test)', () => {
     expect(parsed.PORT).toBe(4000); // Tự động coerce từ string sang number
     expect(parsed.DB_POOL_MAX).toBe(20); // Giá trị mặc định
     expect(parsed.REDIS_PORT).toBe(6379);
-    expect(parsed.API_PREFIX).toBe('api/v1');
+    expect(parsed.API_PREFIX).toBe('api'); // URI versioning tự thêm /v1
+    expect(parsed.API_DEFAULT_VERSION).toBe('1');
     expect(parsed.TRUST_PROXY).toBe(false);
   });
 
   it('should parse boolean strings correctly ("false" must not become true)', () => {
     expect(validateEnv({ ...validMockEnv, REDIS_ENABLED: 'false' }).REDIS_ENABLED).toBe(false);
-    expect(validateEnv({ ...validMockEnv, DB_SSL: '1' }).DB_SSL).toBe(true);
+    expect(validateEnv({ ...validMockEnv, DB_LOG_QUERIES: '1' }).DB_LOG_QUERIES).toBe(true);
+    // Biến để trống trong .env (KEY=) dùng giá trị mặc định thay vì 0 / lỗi
+    expect(validateEnv({ ...validMockEnv, DB_MASTER_PORT: '', REDIS_TLS: '' }).DB_MASTER_PORT).toBe(5432);
   });
 
   it('should parse TRUST_PROXY as hop count, boolean or subnet list', () => {

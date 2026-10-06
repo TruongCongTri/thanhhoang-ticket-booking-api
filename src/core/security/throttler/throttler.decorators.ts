@@ -27,3 +27,9 @@ export const ThrottleSearch = () => SetMetadata(THROTTLE_TIER_METADATA, THROTTLE
  */
 export const ThrottleSensitive = () =>
   SetMetadata(THROTTLE_TIER_METADATA, THROTTLE_TIERS.SENSITIVE);
+
+/**
+ * Bỏ qua cả 3 tầng rate limit (health probe, /metrics). Khác với @SkipThrottle() của @nestjs/throttler
+ * vốn chỉ bỏ qua throttler tên 'default' - không tồn tại trong cấu hình nhiều tầng của hệ thống.
+ */
+export const SkipAllThrottles = () => SetMetadata(THROTTLE_TIER_METADATA, THROTTLE_TIERS.NONE);

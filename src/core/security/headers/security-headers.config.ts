@@ -39,6 +39,28 @@ export const helmetSecurityConfig: HelmetOptions = {
   referrerPolicy: { policy: 'no-referrer' },
 };
 
+/**
+ * CSP nới lỏng CHỈ cho trang Swagger UI (tài nguyên swagger-ui-dist do chính ứng dụng phục vụ);
+ * các route API vẫn dùng CSP 'none' nghiêm ngặt ở trên.
+ */
+export const swaggerHelmetConfig: HelmetOptions = {
+  ...helmetSecurityConfig,
+  contentSecurityPolicy: {
+    useDefaults: false,
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'", 'data:'],
+      baseUri: ["'self'"],
+      frameAncestors: ["'none'"],
+      objectSrc: ["'none'"],
+    },
+  },
+};
+
 type OriginMatcher = (origin: string) => boolean;
 
 /**
@@ -98,12 +120,20 @@ export function buildCorsConfig(allowedOrigins: string[]): CorsOptions {
       'X-Correlation-Id',
       'X-Request-Id',
       'X-Tenant-Id',
+      // W3C Trace Context từ frontend có RUM / OpenTelemetry Web
+      'traceparent',
+      'tracestate',
+      'baggage',
     ],
     exposedHeaders: [
       'X-Correlation-Id',
       'Content-Disposition',
       'Retry-After',
       'X-Cache-Lookup',
+      // RFC 9745 / RFC 8594: client nhận biết lộ trình ngừng hỗ trợ API
+      'Deprecation',
+      'Sunset',
+      'Link',
     ],
     credentials: true,
     maxAge: 86400, // Cache preflight response trong 24h

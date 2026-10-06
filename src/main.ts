@@ -1,43 +1,38 @@
+import './instrumentation'; // OpenTelemetry phải khởi động trước mọi import khác
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { Logger } from '@nestjs/common';
-import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { AppConfigService } from './core/config/app-config.service';
-import { AppLoggerService } from './core/logger/app-logger.service';
-import {
-  buildCorsConfig,
-  helmetSecurityConfig,
-} from './core/security/headers/security-headers.config';
+import { configureApp } from './app.setup';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
-    // Khi shutdown: đóng các kết nối keep-alive nhàn rỗi để server.close() không treo tới watchdog
+    // Đóng các kết nối keep-alive nhàn rỗi để server.close() không bị treo tới watchdog timeout
     forceCloseConnections: true,
+    // [BẮT BUỘC CHO WEBHOOK]: Giữ nguyên raw body Buffer để tính toán chữ ký số HMAC SHA-256
+    rawBody: true,
+    // Body parser được cấu hình trong configureApp() với giới hạn kích thước từ HTTP_BODY_LIMIT
+    bodyParser: false,
   });
 
   const config = app.get(AppConfigService);
+  await configureApp(app, config);
 
-  // 1. Logger có ngữ cảnh (traceId, userId, tenantId) cho toàn bộ application lifecycle
-  app.useLogger(app.get(AppLoggerService));
-  const logger = new Logger('Bootstrap');
-
-  // 2. Chỉ tin X-Forwarded-For từ proxy đã cấu hình (req.ip dùng cho rate limit, audit)
-  app.set('trust proxy', config.trustProxy);
-
-  // 3. Kích hoạt Graceful Shutdown Hooks cho SIGTERM/SIGINT
+  // Kích hoạt Graceful Shutdown Hooks cho tín hiệu SIGTERM/SIGINT
   app.enableShutdownHooks();
 
-  // 4. Security Headers & CORS Whitelist
-  app.use(helmet(helmetSecurityConfig));
-  app.enableCors(buildCorsConfig(config.allowedOrigins));
+  if (config.host) {
+    await app.listen(config.port, config.host);
+  } else {
+    await app.listen(config.port);
+  }
 
-  app.setGlobalPrefix(config.apiPrefix);
-
-  await app.listen(config.port);
-
-  logger.log(`Application listening on port ${config.port} (${config.nodeEnv})`);
+  const logger = new Logger('Bootstrap');
+  logger.log(
+    `Application listening on ${await app.getUrl()} (${config.nodeEnv}) - API: /${config.apiPrefix}/v${config.apiDefaultVersion}`,
+  );
   logger.log({ msg: 'Effective configuration', config: config.getSanitizedConfig() });
 }
 
@@ -54,7 +49,7 @@ process.on('uncaughtException', (err) => {
 });
 
 bootstrap().catch((err) => {
-  // Logger có thể chưa khởi tạo (vd: env không hợp lệ) → ghi thẳng stderr
+  // Ghi thẳng stderr nếu crash trước khi logger khởi tạo (ví dụ: fail-fast env schema validation)
   console.error(err instanceof Error ? err.message : err);
   process.exit(1);
 });

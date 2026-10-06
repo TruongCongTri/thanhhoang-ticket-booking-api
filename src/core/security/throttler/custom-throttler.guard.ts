@@ -1,16 +1,12 @@
 /**
  * Custom Guard định danh tracker:
- * Nếu user đã đăng nhập (Auth Guard chạy trước), tính giới hạn theo user:<userId>.
+ * Nếu user đã đăng nhập (JwtAuthGuard chạy TRƯỚC trong chuỗi guard toàn cục), tính giới hạn theo user:<userId>
+ * → nhân viên dùng chung NAT văn phòng không bị chặn oan.
  * Nếu là khách vãng lai, tính giới hạn theo ip:<clientIp> lấy từ req.ip
  * (đã tôn trọng TRUST_PROXY; KHÔNG đọc thẳng X-Forwarded-For vì có thể bị giả mạo).
  */
 import { Injectable, ExecutionContext } from '@nestjs/common';
-import {
-  ThrottlerGuard,
-  ThrottlerException,
-  ThrottlerLimitDetail,
-  normalizeIp,
-} from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerException, ThrottlerLimitDetail, normalizeIp } from '@nestjs/throttler';
 
 @Injectable()
 export class CustomThrottlerGuard extends ThrottlerGuard {
@@ -25,10 +21,11 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
     return `ip:${normalizeIp(ip, this.ipv6SubnetPrefix)}`;
   }
 
-  protected async throwThrottlingException(
-    _context: ExecutionContext,
-    detail: ThrottlerLimitDetail,
-  ): Promise<void> {
+  protected async throwThrottlingException(context: ExecutionContext, detail: ThrottlerLimitDetail): Promise<void> {
+    // Header chuẩn RFC 9110 (thư viện chỉ gửi Retry-After-<tên tầng>) để client / SDK tự backoff
+    if (context.getType() === 'http') {
+      context.switchToHttp().getResponse()?.setHeader?.('Retry-After', String(detail.timeToBlockExpire));
+    }
     throw new ThrottlerException(
       `Too many requests. Rate limit exceeded. Retry after ${detail.timeToBlockExpire}s.`,
     );

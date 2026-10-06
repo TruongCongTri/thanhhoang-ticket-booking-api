@@ -29,7 +29,37 @@
 
 ```bash
 $ npm install
+$ cp .env.example .env        # then fill the [SECRET] values (ENCRYPTION_KEY, JWT_SECRET, DB password...)
 ```
+
+### Local infrastructure
+
+```bash
+# Redis (required) - loopback only, IPv4 + IPv6
+$ npm run infra:up            # docker compose up -d
+
+# Optional: PostgreSQL 17 in Docker on port 5433 (if PostgreSQL is not installed locally)
+#           + Jaeger for tracing (UI http://localhost:16686, OTLP http://localhost:4318)
+$ npm run infra:up:all
+
+# Database schema (migrations never run on pod boot in production)
+$ npm run migration:run
+```
+
+### Connection profiles
+
+All settings are validated at boot (`src/core/config/env.schema.ts`); `.env.example` documents every variable.
+
+| Target | Configuration |
+| --- | --- |
+| Local PostgreSQL (native, IPv6) | `DB_MASTER_HOST=::1`, `DB_IP_FAMILY=6` |
+| PostgreSQL in Docker | `DB_MASTER_HOST=localhost`, `DB_MASTER_PORT=5433` |
+| Supabase from IPv4 networks | `DATABASE_URL=postgresql://postgres.<ref>:<pwd>@aws-0-<region>.pooler.supabase.com:5432/postgres?sslmode=require`, `DB_IP_FAMILY=4` |
+| Supabase over IPv6 (direct) | `DATABASE_URL=postgresql://postgres:<pwd>@db.<ref>.supabase.co:5432/postgres?sslmode=require`, `DB_IP_FAMILY=6` |
+| Redis in Docker | `REDIS_HOST=127.0.0.1`, `REDIS_PORT=6379` |
+| Managed Redis (Upstash, Redis Cloud...) | `REDIS_URL=rediss://default:<pwd>@<host>:6379` (TLS + SNI) |
+
+Endpoints: API under `/api/v1`, probes at `/health/liveness` and `/health/readiness`, Prometheus at `/metrics`, OpenAPI at `/docs`.
 
 ## Compile and run the project
 
@@ -50,7 +80,7 @@ $ npm run start:prod
 # unit tests
 $ npm run test
 
-# e2e tests
+# e2e tests (real PostgreSQL + Redis: docker compose --profile postgres up -d)
 $ npm run test:e2e
 
 # test coverage
