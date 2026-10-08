@@ -20,6 +20,7 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 import { HttpCacheInterceptor } from './infrastructure/cache/interceptors/http-cache.interceptor';
 import { IdempotencyInterceptor } from './core/security/idempotency/idempotency.interceptor';
 import { CustomValidationPipe } from './common/pipes/validation.pipe';
+import { SearchModule } from './modules/search/search.module';
 
 /**
  * Điểm đăng ký DUY NHẤT của các enhancer toàn cục - thứ tự khai báo chính là thứ tự thực thi
@@ -38,6 +39,7 @@ import { CustomValidationPipe } from './common/pipes/validation.pipe';
     CoreModule,
     InfrastructureModule,
     // Domain Business Modules được import tại đây (AuthModule, BookingsModule, PaymentsModule...)
+    SearchModule
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

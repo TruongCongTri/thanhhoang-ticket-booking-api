@@ -1,0 +1,1 @@
+# Triển khai Adapter Pattern chuẩn hóa API đối tác
